@@ -41,7 +41,7 @@ jobs:
       env:
         FLARESOLVERR_URL: http://localhost:8191
       run: |
-        python FlareSolverr.py
+        python Script.py
 
     env:
         USERNAME: ${{ secrets.USERNAME }}

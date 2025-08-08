@@ -1,7 +1,11 @@
 import requests
-import re,json
+import re, json
 from lxml import etree
+import os
 # from Tools.Spider_tools import Unicode
+
+FLARESOLVERR_URL = "http://localhost:8191/v1"
+FLARESOLVERR_HEADERS = {"Content-Type": "application/json"}
 
 DEBUG = True 
 
@@ -13,31 +17,36 @@ def Unicode(escaped_string):
     unescaped_string = re.sub(r'\\u([0-9a-fA-F]{4})', unescape_unicode, escaped_string)  
     return unescaped_string
 
-def check_proxy():
-    '''代理检测'''
-    import requests
-    try:
-        response = requests.get('http://httpbin.org/ip', timeout=5)
-        if response.status_code == 200:
-            address = requests.get(f"https://api.vore.top/api/IPdata?ip={response.json()['origin']}").json()
-            print("当前IP地址:", response.json()['origin'])
-            if address['code'] != 200: print('地址查询失败')
-            else: 
-                print(f"{address['ipdata']['info1']}: {address['ipdata']['isp']}")
-                print(f"代理模式: {not address['ipinfo']['cnip']}")
-                return not address['ipinfo']['cnip']
-        else:
-            print("IP地址检测失败")
-    except Exception as e:
-        print(f'[BUG]{type(e).__name__}:',e)
-
 class Jmcomic():
-    def __init__(self,username='',password='',cookies=None,session=None):
+    def __init__(self, username='', password='', cookies=None, session=None):
         self.__username = username
         self.__password = password
-        self.session = session or requests.Session()
+        self.session = session or self._create_flaresolverr_session()
         print(f'初始化请求头:{self.session.headers}\n初始化Cookies:{self.session.cookies}')
         self.cookies = self.login()
+
+    def _create_flaresolverr_session(self):
+        """创建通过FlareSolverr的session"""
+        data = {
+            "cmd": "request.get",
+            "url": "https://18comic.vip/",
+            "maxTimeout": 160000
+        }
+        response = requests.post(FLARESOLVERR_URL, 
+                               headers=FLARESOLVERR_HEADERS, 
+                               json=data)
+        
+        if response.status_code != 200:
+            raise Exception(f"FlareSolverr请求失败: {response.text}")
+            
+        solution = response.json()['solution']
+        session = requests.Session()
+        session.headers.update({"User-Agent": solution['userAgent']})
+        
+        # 设置cookies
+        cookies = {c['name']: c['value'] for c in solution['cookies']}
+        session.cookies.update(cookies)
+        return session
 
     # 选择分流
     def shunt(self):
@@ -48,41 +57,68 @@ class Jmcomic():
         get_shunt = self.shunt()
         self.shunt_url = get_shunt[0]
         print('当前请求分流 --> ' + self.shunt_url)
-        headers = {
-            "origin": self.shunt_url,
-            "referer": self.shunt_url,
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
-            'Connection':'close'
-        }
-        url = self.shunt_url + "/login"
+        
+        # 通过FlareSolverr发送登录请求
         data = {
-            "username": self.__username,
-            "password": self.__password,
-            "submit_login": "1"
+            "cmd": "request.post",
+            "url": self.shunt_url + "/login",
+            "postData": f"username={self.__username}&password={self.__password}&submit_login=1",
+            "headers": {
+                "origin": self.shunt_url,
+                "referer": self.shunt_url,
+                "Connection": "close"
+            },
+            "maxTimeout": 160000
         }
-        response = self.session.post(url, headers=headers, data=data)
-        if DEBUG: print('登录响应:', response.text)
-        cookies = response.cookies.get_dict()
-        if DEBUG: print('Cookies:\n',cookies)
+        
+        response = requests.post(FLARESOLVERR_URL, 
+                              headers=FLARESOLVERR_HEADERS, 
+                              json=data)
+        
+        if response.status_code != 200:
+            raise Exception(f"登录请求失败: {response.text}")
+            
+        solution = response.json()['solution']
+        if DEBUG: print('登录响应:', solution['response'])
+        
+        # 更新session的cookies
+        cookies = {c['name']: c['value'] for c in solution['cookies']}
+        self.session.cookies.update(cookies)
+        if DEBUG: print('Cookies:\n', cookies)
         return cookies
 
     # 签到 + 10Exp + 5Gold
     def check_in(self):
-        url = self.shunt_url + "/ajax/user_daily_sign"
         data = {
-            "daily_id": "47",
-            "oldStep": "1"
+            "cmd": "request.post",
+            "url": self.shunt_url + "/ajax/user_daily_sign",
+            "postData": f"daily_id=47&oldStep=1",
+            "maxTimeout": 160000
         }
-        response = self.session.post(url, data=data).json()
-        print(response)
+        response = requests.post(FLARESOLVERR_URL,
+                              headers=FLARESOLVERR_HEADERS,
+                              json=data)
+        if response.status_code != 200:
+            raise Exception(f"签到请求失败: {response.text}")
+        print(response.json()['solution']['response'])
 
     # 广告 + 5Exp(2) + 5Gold(5)
     def ad_check(self):  
         g = 0
         e = 0
         while True:
-            response = self.session.get(self.shunt_url + "/ajax/ad_check" )
-            msg = response.json()['msg']
+            data = {
+                "cmd": "request.get",
+                "url": self.shunt_url + "/ajax/ad_check",
+                "maxTimeout": 160000
+            }
+            response = requests.post(FLARESOLVERR_URL,
+                                  headers=FLARESOLVERR_HEADERS,
+                                  json=data)
+            if response.status_code != 200:
+                raise Exception(f"广告请求失败: {response.text}")
+                
+            msg = response.json()['solution']['response']
             if DEBUG:
                 print(Unicode(msg))
             # gold
@@ -94,20 +130,24 @@ class Jmcomic():
             # End
             if msg in '':
                 break
-        # print(f'已完成每日廣告點擊: 獲得「30」金幣、「10」經驗值')
         print(f'已完成每日廣告點擊: 獲得「{g}」金幣、「{e}」經驗值')
 
     # 喜欢作品 + 5Exp 存在漏洞(取消album_id、referer，再次正常请求)
     def like_check(self):
-        url = self.shunt_url + "/ajax/vote_album"
         for i in range(4):
             data = {
-                "album_id": str(313827+i), # ComicID
-                "vote": "likes"
+                "cmd": "request.post",
+                "url": self.shunt_url + "/ajax/vote_album",
+                "postData": f"album_id={313827+i}&vote=likes",
+                "maxTimeout": 160000
             }
-            response = self.session.post(url, data=data)
-            if DEBUG: print(response.json())
-            print(f'ID {313827+i}: {response.json()["msg"]}')
+            response = requests.post(FLARESOLVERR_URL,
+                                   headers=FLARESOLVERR_HEADERS,
+                                   json=data)
+            if response.status_code != 200:
+                raise Exception(f"点赞请求失败: {response.text}")
+            if DEBUG: print(response.json()['solution']['response'])
+            print(f'ID {313827+i}: {response.json()["solution"]["response"]}')
 
     # 获取漫画
     def get_comic(self):
@@ -131,7 +171,7 @@ def Main(username,password,cookies=None):
 
 
 if __name__ == '__main__':
-    username = ''
-    password = ''
+    username = os.getenv("USERNAME")
+    password = os.getenv("PASSWORD")
     cookies = None
     Jmcomic(username,password,cookies).action()
