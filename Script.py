@@ -46,6 +46,9 @@ class Jmcomic():
         # 设置cookies
         cookies = {c['name']: c['value'] for c in solution['cookies']}
         session.cookies.update(cookies)
+        
+        if DEBUG: 
+            print('初始响应(前100字符):', solution['response'][:100])
         return session
 
     # 选择分流
@@ -79,12 +82,13 @@ class Jmcomic():
             raise Exception(f"登录请求失败: {response.text}")
             
         solution = response.json()['solution']
-        if DEBUG: print('登录响应:', solution['response'])
+        if DEBUG: 
+            print('登录响应(前100字符):', solution['response'][:100])
+            print('Cookies:\n', solution['cookies'])
         
         # 更新session的cookies
         cookies = {c['name']: c['value'] for c in solution['cookies']}
         self.session.cookies.update(cookies)
-        if DEBUG: print('Cookies:\n', cookies)
         return cookies
 
     # 签到 + 10Exp + 5Gold
