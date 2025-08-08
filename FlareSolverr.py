@@ -16,7 +16,7 @@ print("FlareSolverr message:", response.json().get('message', {}))
 
 cookies = {}
 if response.status_code == 200:
-    print(response.json()[:100])
+    print(response.json()['solution']['response'][:100])
     for item in response.json()['solution']['cookies']:
         cookies[item["name"]] = item["value"]
     userAgent = response.json()['solution']['userAgent']
