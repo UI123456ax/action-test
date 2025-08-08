@@ -1,12 +1,10 @@
 import requests
 import os
-import Script
 
 url = "http://localhost:8191/v1"
 headers = {"Content-Type": "application/json"}
 data = {
     "cmd": "request.get",
-    # "url": "https://ip.sb/",
     "url": "https://18comic.vip/",
     "maxTimeout": 160000
 }
@@ -27,9 +25,7 @@ def cf_request(cookies, userAgent):
     session = requests.session()
     session.headers.update({"User-Agent": userAgent})
     session.cookies.update(cookies)
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
-    Script.Jmcomic(username=username, password=password, session=session).action()
+    print(session.get("http://18comic.vip/"))
 
 if __name__ == '__main__':
     cf_request(cookies, userAgent)

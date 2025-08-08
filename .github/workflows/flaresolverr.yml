@@ -1,8 +1,8 @@
 name: FlareSolverr Integration
 
 on:
-  push:
-    branches: [ main ]
+  # push:
+  #   branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -42,7 +42,3 @@ jobs:
         FLARESOLVERR_URL: http://localhost:8191
       run: |
         python Script.py
-
-    env:
-        USERNAME: ${{ secrets.USERNAME }}
-        PASSWORD: ${{ secrets.PASSWORD }}
