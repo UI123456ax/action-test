@@ -36,12 +36,16 @@ class Jmcomic():
         self.__username = username
         self.__password = password
         self.session = session or requests.Session()
-        if cookies is not None:
+        print(f'初始化请求头和Cookies:{self.session.headers},{self.session.cookies}')
+        if cookies is not None or (self.session and self.session.cookies):
             self.shunt_url = self.shunt()[0]
-            try:
-                self.cookies = json.loads(cookies)
-            except json.decoder.JSONDecodeError:
-                self.cookies = json.loads(cookies.replace("'","\""))
+            if cookies is not None:
+                try:
+                    self.cookies = json.loads(cookies)
+                except json.decoder.JSONDecodeError:
+                    self.cookies = json.loads(cookies.replace("'","\""))
+            else:
+                self.cookies = self.session.cookies.get_dict()
         else:
             self.cookies = self.login()
 
@@ -91,12 +95,11 @@ class Jmcomic():
                     continue
                 else:
                     raise Exception('请求错误！')
+        if DEBUG: print(response.text)
         if response.json()['status'] == 2:
             raise ValueError('账号或密码错误！')
         cookies = response.cookies.get_dict()
-        if DEBUG:
-            print(response.text)
-            print('Cookies:\n',cookies)
+        if DEBUG: print('Cookies:\n',cookies)
         return cookies
 
     # 签到 + 10Exp + 5Gold
