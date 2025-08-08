@@ -36,7 +36,7 @@ class Jmcomic():
         self.__username = username
         self.__password = password
         self.session = session or requests.Session()
-        print(f'初始化请求头和Cookies:{self.session.headers},{self.session.cookies}')
+        print(f'初始化请求头:{self.session.headers}\n初始化Cookies:{self.session.cookies}')
         if cookies is not None or (self.session and self.session.cookies):
             self.shunt_url = self.shunt()[0]
             if cookies is not None:
@@ -51,53 +51,27 @@ class Jmcomic():
 
     # 选择分流
     def shunt(self):
-        response = requests.get(Information()[0]).content.decode('utf-8')
-        tree = etree.HTML(response)
-        # 整理列表 x=选取第n个列表
-        cleaned_result = lambda url,x=0 : [text.strip() for text in url][x]
-        # 获取分流URL
-        url_1 = tree.xpath('//div[@class="first_line"]/span/text()')
-        url_2 = tree.xpath('//div[@class="second_line"]/span/text()')
-        international = tree.xpath('//div[@class="international"]/span/text()')
-        if DEBUG: print(f'内陆分流: {url_1},{url_2}; 国际分流: {international}')
-        if not (url_1 and url_2 and international):
-            return ['https://18comic.vip']
-        if check_proxy():
-            return [f'https://{international[0]}', f'https://{international[1]}']
-        return [f'https://{cleaned_result(url_1)}', f'https://{cleaned_result(url_2)}']
+        return ['https://18comic.vip']
 
     # 登录
     def login(self):
         get_shunt = self.shunt()
-        for i in range(2):
-            try:
-                self.shunt_url = get_shunt[i]
-                print('当前请求分流 --> ' + self.shunt_url)
-                headers = {
-                    "origin": self.shunt_url,
-                    "referer": self.shunt_url,
-                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
-                    'Connection':'close'
-                }
-                url = self.shunt_url + "/login"
-                data = {
-                    "username": self.__username,
-                    "password": self.__password,
-                    "submit_login": "1"
-                }
-                response = self.session.post(url, headers=headers, data=data)
-                break
-            except Exception as e:
-                if DEBUG:
-                    print(type(e).__name__,'-->',e)
-                if i < 1:
-                    print(f'[WARN!]正在切换分流地址 --> {i+2}')
-                    continue
-                else:
-                    raise Exception('请求错误！')
-        if DEBUG: print(response.text)
-        if response.json()['status'] == 2:
-            raise ValueError('账号或密码错误！')
+        self.shunt_url = get_shunt[0]
+        print('当前请求分流 --> ' + self.shunt_url)
+        headers = {
+            "origin": self.shunt_url,
+            "referer": self.shunt_url,
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
+            'Connection':'close'
+        }
+        url = self.shunt_url + "/login"
+        data = {
+            "username": self.__username,
+            "password": self.__password,
+            "submit_login": "1"
+        }
+        response = self.session.post(url, headers=headers, data=data)
+        if DEBUG: print('登录响应:', response.text)
         cookies = response.cookies.get_dict()
         if DEBUG: print('Cookies:\n',cookies)
         return cookies
@@ -109,14 +83,8 @@ class Jmcomic():
             "daily_id": "47",
             "oldStep": "1"
         }
-        response = self.session.post(url, data=data)
-        msg = Unicode(response.json()['msg'])
-        if msg not in '':
-            print(msg)
-        elif msg == '' and response.json()['error'] == 'finished':
-            print('今日已签到过啦！')
-        else:
-            print('签到失败')
+        response = self.session.post(url, data=data).json()
+        print(response)
 
     # 广告 + 5Exp(2) + 5Gold(5)
     def ad_check(self):  
