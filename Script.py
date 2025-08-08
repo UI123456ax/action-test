@@ -165,7 +165,7 @@ def Information():
     return [web,environ]
 
 def Main(username,password,cookies=None):
-    global DEBUG; DEBUG = False
+    global DEBUG; DEBUG = True
     Jmcomic(username,password,cookies).action()
 
 
