@@ -1,5 +1,4 @@
 import requests
-import jmcomic
 
 url = "http://localhost:8191/v1"
 headers = {"Content-Type": "application/json"}
