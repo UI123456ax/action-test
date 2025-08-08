@@ -37,17 +37,7 @@ class Jmcomic():
         self.__password = password
         self.session = session or requests.Session()
         print(f'初始化请求头:{self.session.headers}\n初始化Cookies:{self.session.cookies}')
-        if cookies is not None or (self.session and self.session.cookies):
-            self.shunt_url = self.shunt()[0]
-            if cookies is not None:
-                try:
-                    self.cookies = json.loads(cookies)
-                except json.decoder.JSONDecodeError:
-                    self.cookies = json.loads(cookies.replace("'","\""))
-            else:
-                self.cookies = self.session.cookies.get_dict()
-        else:
-            self.cookies = self.login()
+        self.cookies = self.login()
 
     # 选择分流
     def shunt(self):
