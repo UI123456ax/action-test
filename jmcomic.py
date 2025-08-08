@@ -42,26 +42,25 @@ class Jmcomic():
                 self.cookies = json.loads(cookies)
             except json.decoder.JSONDecodeError:
                 self.cookies = json.loads(cookies.replace("'","\""))
-        elif username and password not in '':
-            self.cookies = self.login()
         else:
-            raise Exception('未设置登录信息')
+            self.cookies = self.login()
 
     # 选择分流
     def shunt(self):
-        # 解析网页
-        response = requests.get(Information()[0]).content.decode('utf-8')
-        tree = etree.HTML(response)
-        # 整理列表 x=选取第n个列表
-        cleaned_result = lambda url,x=0 : [text.strip() for text in url][x]
-        # 获取分流URL
-        url_1 = tree.xpath('//div[@class="first_line"]/span/text()')
-        url_2 = tree.xpath('//div[@class="second_line"]/span/text()')
-        international = tree.xpath('//div[@class="international"]/span/text()')
-        if DEBUG: print(f'内陆分流: {url_1},{url_2}; 国际分流: {international}')
-        if check_proxy() == True:
-            return ['https://' + international[0],'https://' + international[1]]
-        return ['https://' + cleaned_result(url_1),'https://' + cleaned_result(url_2)]
+        # # 解析网页
+        # response = requests.get(Information()[0]).content.decode('utf-8')
+        # tree = etree.HTML(response)
+        # # 整理列表 x=选取第n个列表
+        # cleaned_result = lambda url,x=0 : [text.strip() for text in url][x]
+        # # 获取分流URL
+        # url_1 = tree.xpath('//div[@class="first_line"]/span/text()')
+        # url_2 = tree.xpath('//div[@class="second_line"]/span/text()')
+        # international = tree.xpath('//div[@class="international"]/span/text()')
+        # if DEBUG: print(f'内陆分流: {url_1},{url_2}; 国际分流: {international}')
+        # if check_proxy() == True:
+        #     return ['https://' + international[0],'https://' + international[1]]
+        # return ['https://' + cleaned_result(url_1),'https://' + cleaned_result(url_2)]
+        return ['https://18comic.vip','https://18comic.inik']
 
     # 登录
     def login(self):
