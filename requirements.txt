@@ -1,1 +1,3 @@
 cloudscraper
+requests
+lxml
