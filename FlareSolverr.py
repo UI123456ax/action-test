@@ -16,14 +16,18 @@ print("Status Code:", response.status_code)
 print("FlareSolverr message:", response.json().get('message', {}))
 
 cookies = {}
-session = requests.session()
 if response.status_code == 200:
-    print(response.json())
+    print(response.json()[:100])
     for item in response.json()['solution']['cookies']:
         cookies[item["name"]] = item["value"]
     userAgent = response.json()['solution']['userAgent']
+
+def cf_request(cookies, userAgent):
+    session = requests.session()
     session.headers.update({"User-Agent": userAgent})
     session.cookies.update(cookies)
+    response = session.get("https://18comic.vip/")
+    print("Response:", response.text)
 
 if __name__ == '__main__':
-    jmcomic.Main(username='test', password='123666')
+    cf_request(cookies, userAgent)
